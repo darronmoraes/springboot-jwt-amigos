@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: jwt-auth demo
+  profiles:
+    active: local
