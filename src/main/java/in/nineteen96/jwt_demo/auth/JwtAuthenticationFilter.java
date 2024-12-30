@@ -1,10 +1,13 @@
 package in.nineteen96.jwt_demo.auth;
 
 import in.nineteen96.jwt_demo.service.UserService;
+import in.nineteen96.jwt_demo.utils.Constants;
+import in.nineteen96.jwt_demo.utils.EndpointUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.websocket.Endpoint;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -37,6 +40,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
+
+        String requestURI = request.getRequestURI();
+        System.out.println("request url: " + requestURI);
+
+        if (EndpointUtils.isPermittedEndpoint(requestURI, Constants.permittedUri)) {
+            System.out.println("Request to permitted endpoint. Bypassing authentication.");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         System.out.println("getting authorization header");
 //        log.info("attempt to get authorization header");
         final String authorizationHeader = request.getHeader("Authorization");
@@ -44,7 +57,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             System.out.println("authorization header not found");
-            filterChain.doFilter(request, response);
+//            filterChain.doFilter(request, response);
+
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 Unauthorized
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Authorization header not found or invalid\"}");
             return;
         }
 
